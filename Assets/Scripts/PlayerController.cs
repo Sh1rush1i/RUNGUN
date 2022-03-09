@@ -20,6 +20,8 @@ public class PlayerController : MonoBehaviour
     private Transform bulletParent;
     [SerializeField]
     private float bulletMissDistance = 25f;
+    [SerializeField]
+    private float animationSmoothTime = 0.1f;
 
     private CharacterController controller;
     private PlayerInput playerInput;
@@ -31,6 +33,13 @@ public class PlayerController : MonoBehaviour
     private InputAction jumpAction;
     private InputAction shootAction;
 
+    private Animator animator;
+    int moveXAnimationParameterId;
+    int moveZAnimationParameterId;
+
+    Vector2 currentAnimationBlendVector;
+    Vector2 animationVelocity;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -39,6 +48,10 @@ public class PlayerController : MonoBehaviour
         moveAction = playerInput.actions["Move"];
         jumpAction = playerInput.actions["Jump"];
         shootAction = playerInput.actions["Shoot"];
+        Cursor.lockState = CursorLockMode.Locked;
+        animator = GetComponent<Animator>();
+        moveXAnimationParameterId = Animator.StringToHash("MoveX");
+        moveZAnimationParameterId = Animator.StringToHash("MoveZ");
     }
 
     private void onEnable() {
@@ -75,10 +88,13 @@ public class PlayerController : MonoBehaviour
         }
 
         Vector2 input = moveAction.ReadValue<Vector2>();
-        Vector3 move = new Vector3(input.x, 0, input.y);
+        currentAnimationBlendVector = Vector2.SmoothDamp(currentAnimationBlendVector, input, ref animationVelocity, animationSmoothTime);
+        Vector3 move = new Vector3(currentAnimationBlendVector.x, 0, currentAnimationBlendVector.y);
         move = move.x * cameraTransform.right.normalized + move.z * cameraTransform.forward.normalized;
         move.y = 0f;
         controller.Move(move * Time.deltaTime * playerSpeed);
+        animator.SetFloat(moveXAnimationParameterId, currentAnimationBlendVector.x);
+        animator.SetFloat(moveXAnimationParameterId, currentAnimationBlendVector.y);
 
         if (jumpAction.triggered && groundedPlayer)
         {
